@@ -2,31 +2,31 @@ package dna
 
 import (
 	"github.com/genetic-algorithms/mendel-go/config"
+	"log"
 	"math"
 	"math/rand"
-	"log"
 	//"unsafe"
 	"github.com/genetic-algorithms/mendel-go/utils"
 )
 
 // Note: we have a lot of mutations, so to keep the size of each to a min, store del/fav and dom/rec in same enum
 type MutationType uint8
-const (
-	DELETERIOUS_DOMINANT MutationType = iota
-	DELETERIOUS_RECESSIVE MutationType = iota
-	NEUTRAL MutationType = iota
-	FAVORABLE_DOMINANT MutationType = iota
-	FAVORABLE_RECESSIVE MutationType = iota
-	DEL_ALLELE MutationType = iota  // Note: for now we assume that all initial contrasting alleles are co-dominant, so we don't have to store dominant/recessive
-	FAV_ALLELE MutationType = iota
-)
 
+const (
+	DELETERIOUS_DOMINANT  MutationType = iota
+	DELETERIOUS_RECESSIVE MutationType = iota
+	NEUTRAL               MutationType = iota
+	FAVORABLE_DOMINANT    MutationType = iota
+	FAVORABLE_RECESSIVE   MutationType = iota
+	DEL_ALLELE            MutationType = iota // Note: for now we assume that all initial contrasting alleles are co-dominant, so we don't have to store dominant/recessive
+	FAV_ALLELE            MutationType = iota
+)
 
 // A simple struct that is embedded in the LB arrays. (Not a ptr to it.) A lot of mutations exist, so need to keep its size to a minimum.
 type Mutation struct {
-	Id uint64
-	Type MutationType
-	FitnessEffect float32	// even tho we accumulate the fitness in the LB as we go, we need to save this for allele analysis
+	Id            uint64
+	Type          MutationType
+	FitnessEffect float32 // even tho we accumulate the fitness in the LB as we go, we need to save this for allele analysis
 }
 
 /* We don't get much benefit from having this as a base class (only 1 common field), and i think it is more efficient to
@@ -57,13 +57,13 @@ type Allele struct {
 // The number of occurrences of each allele (both mutations and initial alleles) in 1 generation. The map key is the unique id of mutation.
 // Note: this is defined here instead of population.go to avoid circular dependencies
 type AlleleCount struct {
-	DeleteriousDom         map[uint64]Allele
-	DeleteriousRec         map[uint64]Allele
-	Neutral         map[uint64]Allele
-	FavorableDom         map[uint64]Allele
-	FavorableRec         map[uint64]Allele
-	DelInitialAlleles         map[uint64]Allele
-	FavInitialAlleles         map[uint64]Allele
+	DeleteriousDom    map[uint64]Allele
+	DeleteriousRec    map[uint64]Allele
+	Neutral           map[uint64]Allele
+	FavorableDom      map[uint64]Allele
+	FavorableRec      map[uint64]Allele
+	DelInitialAlleles map[uint64]Allele
+	FavInitialAlleles map[uint64]Allele
 }
 
 func AlleleCountFactory() *AlleleCount {
@@ -78,7 +78,6 @@ func AlleleCountFactory() *AlleleCount {
 	return ac
 }
 
-
 // CalcMutationType determines if the next mutation should be deleterious/neutral/favorable based on a random number and the various relevant rates for this population.
 // This is used by the LB to determine which of the Mutation subclasses to create.
 func CalcMutationType(uniformRandom *rand.Rand) (mType MutationType) {
@@ -86,14 +85,14 @@ func CalcMutationType(uniformRandom *rand.Rand) (mType MutationType) {
 	// Determine if this mutation is deleterious, neutral, or favorable.
 	// Frac_fav_mutn is the fraction of the non-neutral mutations that are favorable.
 	rnd := uniformRandom.Float64()
-	if rnd < config.Cfg.Mutations.Frac_fav_mutn * (1.0 - config.Cfg.Mutations.Fraction_neutral) {
+	if rnd < config.Cfg.Mutations.Frac_fav_mutn*(1.0-config.Cfg.Mutations.Fraction_neutral) {
 		dominant := config.Cfg.Mutations.Fraction_recessive < uniformRandom.Float64()
 		if dominant {
 			mType = FAVORABLE_DOMINANT
 		} else {
 			mType = FAVORABLE_RECESSIVE
 		}
-	} else if rnd < 1.0 - config.Cfg.Mutations.Fraction_neutral {
+	} else if rnd < 1.0-config.Cfg.Mutations.Fraction_neutral {
 		dominant := config.Cfg.Mutations.Fraction_recessive < uniformRandom.Float64()
 		if dominant {
 			mType = DELETERIOUS_DOMINANT
@@ -106,10 +105,9 @@ func CalcMutationType(uniformRandom *rand.Rand) (mType MutationType) {
 	return
 }
 
-
 // calcDelMutationAttrs determines the attributes of a new mutation, based on a random number and the config params.
 // This is used in the subclass factory to initialize the base Mutation class members, and in LB AppendMutation() if it is untracked.
-//func calcDelMutationAttrs(uniformRandom *rand.Rand) (fitnessEffect float32) {
+// func calcDelMutationAttrs(uniformRandom *rand.Rand) (fitnessEffect float32) {
 func calcDelMutationAttrs(mType MutationType, uniformRandom *rand.Rand) (fitnessEffect float32) {
 	// Determine if this mutation is dominant or recessive and use that to calc the fitness
 	//dominant := config.Cfg.Mutations.Fraction_recessive < uniformRandom.Float64()
@@ -122,10 +120,9 @@ func calcDelMutationAttrs(mType MutationType, uniformRandom *rand.Rand) (fitness
 	return
 }
 
-
 // calcFavMutationAttrs determines the attributes of a new mutation, based on a random number and the config params.
 // This is used in the subclass factory to initialize the base Mutation class members, and in LB AppendMutation() if it is untracked.
-//func calcFavMutationAttrs(uniformRandom *rand.Rand) (fitnessEffect float32) {
+// func calcFavMutationAttrs(uniformRandom *rand.Rand) (fitnessEffect float32) {
 func calcFavMutationAttrs(mType MutationType, uniformRandom *rand.Rand) (fitnessEffect float32) {
 	// Determine if this mutation is dominant or recessive and use that to calc the fitness
 	//dominant := config.Cfg.Mutations.Fraction_recessive < uniformRandom.Float64()
@@ -138,15 +135,23 @@ func calcFavMutationAttrs(mType MutationType, uniformRandom *rand.Rand) (fitness
 	return
 }
 
-
 // These are the different algorithms for assigning a fitness factor to a mutation. Pointers to 2 of them are chosen at initialization time.
 type CalcMutationFitnessType func(uniformRandom *rand.Rand) float64
-func CalcFixedDelMutationFitness(_ *rand.Rand) float64 { return -config.Cfg.Mutations.Uniform_fitness_effect_del }
-func CalcFixedFavMutationFitness(_ *rand.Rand) float64 { return config.Cfg.Mutations.Uniform_fitness_effect_fav }
+
+func CalcFixedDelMutationFitness(_ *rand.Rand) float64 {
+	return -config.Cfg.Mutations.Uniform_fitness_effect_del
+}
+func CalcFixedFavMutationFitness(_ *rand.Rand) float64 {
+	return config.Cfg.Mutations.Uniform_fitness_effect_fav
+}
 
 // Calculate a random fitness between -Uniform_fitness_effect_del and 0 (deleterious) or 0 and Uniform_fitness_effect_fav (favorable)
-func CalcUniformDelMutationFitness(uniformRandom *rand.Rand) float64 {return -(uniformRandom.Float64() * config.Cfg.Mutations.Uniform_fitness_effect_del) }
-func CalcUniformFavMutationFitness(uniformRandom *rand.Rand) float64 { return uniformRandom.Float64() * config.Cfg.Mutations.Uniform_fitness_effect_fav }
+func CalcUniformDelMutationFitness(uniformRandom *rand.Rand) float64 {
+	return -(uniformRandom.Float64() * config.Cfg.Mutations.Uniform_fitness_effect_del)
+}
+func CalcUniformFavMutationFitness(uniformRandom *rand.Rand) float64 {
+	return uniformRandom.Float64() * config.Cfg.Mutations.Uniform_fitness_effect_fav
+}
 
 // Algorithm according to Wes and the Fortran version. See init.f90 lines 300-311 and mutation.f90 lines 102-109
 func CalcWeibullDelMutationFitness(uniformRandom *rand.Rand) float64 {
@@ -154,7 +159,7 @@ func CalcWeibullDelMutationFitness(uniformRandom *rand.Rand) float64 {
 	//gammaDel := math.Log(-math.Log(config.Cfg.Mutations.High_impact_mutn_threshold) / config.Computed.alpha_del) /
 	//             math.Log(config.Cfg.Mutations.High_impact_mutn_fraction)
 
-	return -math.Exp( -config.Computed.Alpha_del * math.Pow(uniformRandom.Float64(),config.Computed.Gamma_del) )
+	return -math.Exp(-config.Computed.Alpha_del * math.Pow(uniformRandom.Float64(), config.Computed.Gamma_del))
 }
 
 // Algorithm according to Wes and the Fortran version. See init.f90 lines 300-311 and mutation.f90 line 104
@@ -170,20 +175,21 @@ func CalcWeibullFavMutationFitness(uniformRandom *rand.Rand) float64 {
 	            math.Log(config.Cfg.Mutations.High_impact_mutn_fraction)
 	*/
 
-	return config.Cfg.Mutations.Max_fav_fitness_gain * math.Exp(-config.Computed.Alpha_fav * math.Pow(uniformRandom.Float64(), config.Computed.Gamma_fav))
+	return config.Cfg.Mutations.Max_fav_fitness_gain * math.Exp(-config.Computed.Alpha_fav*math.Pow(uniformRandom.Float64(), config.Computed.Gamma_fav))
 }
-
 
 // These are the different algorithms for assigning a fitness factor to an initial allele. Pointers to 2 of them are chosen at initialization time.
 type CalcAlleleFitnessType func(uniformRandom *rand.Rand) float64
 
 func CalcUniformAlleleFitness(uniformRandom *rand.Rand) float64 {
-	if config.Cfg.Population.Num_contrasting_alleles == 0 { log.Fatalln("System Error: CalcUniformAlleleFitness() called when Num_contrasting_alleles==0") }
+	if config.Cfg.Population.Num_contrasting_alleles == 0 {
+		log.Fatalln("System Error: CalcUniformAlleleFitness() called when Num_contrasting_alleles==0")
+	}
 	initial_alleles_mean_effect := config.Cfg.Population.Max_total_fitness_increase / float64(config.Cfg.Population.Num_contrasting_alleles)
 	if config.Cfg.Population.Num_contrasting_alleles <= 10 {
-		return initial_alleles_mean_effect		// the number of alleles is small enough that using uniformRandom probably won't give us a good average
+		return initial_alleles_mean_effect // the number of alleles is small enough that using uniformRandom probably won't give us a good average
 	} else {
-		return 2.0 * initial_alleles_mean_effect * uniformRandom.Float64()		// so the average works out to be initial_alleles_mean_effect
+		return 2.0 * initial_alleles_mean_effect * uniformRandom.Float64() // so the average works out to be initial_alleles_mean_effect
 	}
 }
 

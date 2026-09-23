@@ -1,8 +1,8 @@
 package dna
 
 import (
-	"math/rand"
 	"github.com/genetic-algorithms/mendel-go/config"
+	"math/rand"
 	//"log"
 	//"unsafe"
 	"github.com/genetic-algorithms/mendel-go/utils"
@@ -14,23 +14,21 @@ import (
 
 // LinkageBlock represents 1 linkage block in the genome of an individual. It tracks the mutations in this LB and the cumulative fitness affect on the individual's fitness.
 type LinkageBlock struct {
-	mutn []Mutation		// holds deleterious, neutral, favorable, initial deleterious, initial favorable
+	mutn []Mutation // holds deleterious, neutral, favorable, initial deleterious, initial favorable
 	// Note: instead of adding the space of another LB member var, we could always make sure the mutn array is barely big enough so the builtin append() would naturally copy it
-	IsPtrToParent bool		// whether or not the mutn slice is still a reference to its parents mutn array. We don't copy it until we add a mutation. During create of a new LB, this will naturally be set to false.
-	fitnessEffect float32
-	numDeleterious         uint16
-	numFavorable           uint16
-	numNeutrals            uint16               // this is used instead of the array above if track_neutrals==false
-	numDelAllele uint16
-	numFavAllele uint16
+	IsPtrToParent  bool // whether or not the mutn slice is still a reference to its parents mutn array. We don't copy it until we add a mutation. During create of a new LB, this will naturally be set to false.
+	fitnessEffect  float32
+	numDeleterious uint16
+	numFavorable   uint16
+	numNeutrals    uint16 // this is used instead of the array above if track_neutrals==false
+	numDelAllele   uint16
+	numFavAllele   uint16
 }
-
 
 // GetNumMutations returns the current total number of mutations and initial alleles
 func (lb *LinkageBlock) GetNumMutations() uint32 {
 	return uint32(lb.numDeleterious + lb.numFavorable + lb.numNeutrals + lb.numDelAllele + lb.numFavAllele)
 }
-
 
 // AppendMutation creates and adds a mutation to this LB.
 func (lb *LinkageBlock) AppendMutation(mutId uint64, uniformRandom *rand.Rand) (mType MutationType, fitnessEffect float32) {
@@ -45,7 +43,7 @@ func (lb *LinkageBlock) AppendMutation(mutId uint64, uniformRandom *rand.Rand) (
 			lb.appendMutn(Mutation{Id: mutId, Type: mType, FitnessEffect: fitnessEffect})
 		}
 		lb.numDeleterious++
-		lb.fitnessEffect += fitnessEffect		// currently only the additive combination model is supported, so this is appropriate
+		lb.fitnessEffect += fitnessEffect // currently only the additive combination model is supported, so this is appropriate
 	case NEUTRAL:
 		if config.Cfg.Computation.Track_neutrals {
 			lb.appendMutn(Mutation{Id: mutId, Type: NEUTRAL})
@@ -60,11 +58,10 @@ func (lb *LinkageBlock) AppendMutation(mutId uint64, uniformRandom *rand.Rand) (
 			lb.appendMutn(Mutation{Id: mutId, Type: mType, FitnessEffect: fitnessEffect})
 		}
 		lb.numFavorable++
-		lb.fitnessEffect += fitnessEffect	// currently only the additive combination model is supported, so this is appropriate
+		lb.fitnessEffect += fitnessEffect // currently only the additive combination model is supported, so this is appropriate
 	}
 	return
 }
-
 
 // appendMutn adds a mutation to the LB slice, but only adds 2 elements (instead of Go's default of doubling) if it needs to be made bigger
 // because for typical input parameters usually 0 or 1 mutation gets added to an LB in a generation.
@@ -75,18 +72,17 @@ func (lb *LinkageBlock) appendMutn(mutn Mutation) {
 	//if newLen > cap(lb.mutn) || (config.Cfg.Computation.Perf_option == 2 && lb.IsPtrToParent) {
 	if newLen > cap(lb.mutn) || lb.IsPtrToParent {
 		// current backing array is not big enough, so allocate a new one
-		newCap := origLen + 2 	// make the capacity of the new backing array 2 bigger, in case we add another mutn later
+		newCap := origLen + 2 // make the capacity of the new backing array 2 bigger, in case we add another mutn later
 		newSlice := make([]Mutation, newLen, newCap)
-		copy(newSlice, lb.mutn)		// will only copy the number of elements slice has (the smaller one)
+		copy(newSlice, lb.mutn) // will only copy the number of elements slice has (the smaller one)
 		newSlice[origLen] = mutn
 		lb.mutn = newSlice
 	} else {
 		// current backing array is big enough
-		lb.mutn = lb.mutn[0:newLen]		// increase the len of the slice
+		lb.mutn = lb.mutn[0:newLen] // increase the len of the slice
 		lb.mutn[origLen] = mutn
 	}
 }
-
 
 // AppendInitialContrastingAlleles adds a random initial contrasting allele pair to 2 LBs (favorable to 1, deleterious to the other).
 // The 2 LBs passed in are typically the same LB position on the same chromosome number, 1 from each parent.
@@ -125,13 +121,11 @@ func AppendInitialAllelePair(lb1, lb2 *LinkageBlock, favMutn, delMutn Mutation) 
 	lb2.fitnessEffect += delMutn.FitnessEffect
 }
 
-
 // SumFitness combines the fitness effect of all of its mutations in the additive method
 func (lb *LinkageBlock) SumFitness() (fitness float32) {
 	fitness = lb.fitnessEffect
 	return
 }
-
 
 // GetMutationStats returns the number of deleterious, neutral, favorable mutations, and deleterious and favorable initial alleles.
 func (lb *LinkageBlock) GetMutationStats() (deleterious, neutral, favorable, delAllele, favAllele uint32) {
@@ -144,7 +138,6 @@ func (lb *LinkageBlock) GetMutationStats() (deleterious, neutral, favorable, del
 	return
 }
 
-
 // CountAlleles counts all of this LB's alleles (both mutations and initial alleles) and adds them to the given struct
 func (lb *LinkageBlock) CountAlleles(allelesForThisIndiv *AlleleCount) {
 	// We are getting the alleles for just this individual so we don't want to double count the same allele from both parents,
@@ -156,7 +149,7 @@ func (lb *LinkageBlock) CountAlleles(allelesForThisIndiv *AlleleCount) {
 			if allele, ok := allelesForThisIndiv.DeleteriousDom[id]; ok {
 				// It already exists, update it
 				if config.Cfg.Computation.Count_duplicate_alleles {
-					allelesForThisIndiv.DeleteriousDom[id] = Allele{Count: allele.Count+1, FitnessEffect: m.FitnessEffect}
+					allelesForThisIndiv.DeleteriousDom[id] = Allele{Count: allele.Count + 1, FitnessEffect: m.FitnessEffect}
 				}
 				// else we already did this: allelesForThisIndiv.DeleteriousDom[id] = Allele{Count: 1, FitnessEffect: m.FitnessEffect}
 			} else {
@@ -166,7 +159,7 @@ func (lb *LinkageBlock) CountAlleles(allelesForThisIndiv *AlleleCount) {
 			if allele, ok := allelesForThisIndiv.DeleteriousRec[id]; ok {
 				// It already exists, update it
 				if config.Cfg.Computation.Count_duplicate_alleles {
-					allelesForThisIndiv.DeleteriousRec[id] = Allele{Count: allele.Count+1, FitnessEffect: m.FitnessEffect}
+					allelesForThisIndiv.DeleteriousRec[id] = Allele{Count: allele.Count + 1, FitnessEffect: m.FitnessEffect}
 				}
 				// else we already did this: allelesForThisIndiv.DeleteriousDom[id] = Allele{Count: 1, FitnessEffect: m.FitnessEffect}
 			} else {
@@ -176,7 +169,7 @@ func (lb *LinkageBlock) CountAlleles(allelesForThisIndiv *AlleleCount) {
 			if allele, ok := allelesForThisIndiv.Neutral[id]; ok {
 				// It already exists, update it
 				if config.Cfg.Computation.Count_duplicate_alleles {
-					allelesForThisIndiv.Neutral[id] = Allele{Count: allele.Count+1, FitnessEffect: m.FitnessEffect}
+					allelesForThisIndiv.Neutral[id] = Allele{Count: allele.Count + 1, FitnessEffect: m.FitnessEffect}
 				}
 				// else we already did this: allelesForThisIndiv.DeleteriousDom[id] = Allele{Count: 1, FitnessEffect: m.FitnessEffect}
 			} else {
@@ -186,7 +179,7 @@ func (lb *LinkageBlock) CountAlleles(allelesForThisIndiv *AlleleCount) {
 			if allele, ok := allelesForThisIndiv.FavorableDom[id]; ok {
 				// It already exists, update it
 				if config.Cfg.Computation.Count_duplicate_alleles {
-					allelesForThisIndiv.FavorableDom[id] = Allele{Count: allele.Count+1, FitnessEffect: m.FitnessEffect}
+					allelesForThisIndiv.FavorableDom[id] = Allele{Count: allele.Count + 1, FitnessEffect: m.FitnessEffect}
 				}
 				// else we already did this: allelesForThisIndiv.DeleteriousDom[id] = Allele{Count: 1, FitnessEffect: m.FitnessEffect}
 			} else {
@@ -196,7 +189,7 @@ func (lb *LinkageBlock) CountAlleles(allelesForThisIndiv *AlleleCount) {
 			if allele, ok := allelesForThisIndiv.FavorableRec[id]; ok {
 				// It already exists, update it
 				if config.Cfg.Computation.Count_duplicate_alleles {
-					allelesForThisIndiv.FavorableRec[id] = Allele{Count: allele.Count+1, FitnessEffect: m.FitnessEffect}
+					allelesForThisIndiv.FavorableRec[id] = Allele{Count: allele.Count + 1, FitnessEffect: m.FitnessEffect}
 				}
 				// else we already did this: allelesForThisIndiv.DeleteriousDom[id] = Allele{Count: 1, FitnessEffect: m.FitnessEffect}
 			} else {
@@ -206,7 +199,7 @@ func (lb *LinkageBlock) CountAlleles(allelesForThisIndiv *AlleleCount) {
 			if allele, ok := allelesForThisIndiv.DelInitialAlleles[id]; ok {
 				// It already exists, update it
 				if config.Cfg.Computation.Count_duplicate_alleles {
-					allelesForThisIndiv.DelInitialAlleles[id] = Allele{Count: allele.Count+1, FitnessEffect: m.FitnessEffect}
+					allelesForThisIndiv.DelInitialAlleles[id] = Allele{Count: allele.Count + 1, FitnessEffect: m.FitnessEffect}
 				}
 				// else we already did this: allelesForThisIndiv.DeleteriousDom[id] = Allele{Count: 1, FitnessEffect: m.FitnessEffect}
 			} else {
@@ -216,7 +209,7 @@ func (lb *LinkageBlock) CountAlleles(allelesForThisIndiv *AlleleCount) {
 			if allele, ok := allelesForThisIndiv.FavInitialAlleles[id]; ok {
 				// It already exists, update it
 				if config.Cfg.Computation.Count_duplicate_alleles {
-					allelesForThisIndiv.FavInitialAlleles[id] = Allele{Count: allele.Count+1, FitnessEffect: m.FitnessEffect}
+					allelesForThisIndiv.FavInitialAlleles[id] = Allele{Count: allele.Count + 1, FitnessEffect: m.FitnessEffect}
 				}
 				// else we already did this: allelesForThisIndiv.DeleteriousDom[id] = Allele{Count: 1, FitnessEffect: m.FitnessEffect}
 			} else {

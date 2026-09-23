@@ -2,48 +2,52 @@ package dna
 
 import (
 	"github.com/genetic-algorithms/mendel-go/config"
-	"strings"
 	"log"
+	"strings"
 )
 
 type MutationFitnessModelType string
+
 const (
-	FIXED_FITNESS_EFFECT MutationFitnessModelType = "fixed"
+	FIXED_FITNESS_EFFECT   MutationFitnessModelType = "fixed"
 	UNIFORM_FITNESS_EFFECT MutationFitnessModelType = "uniform"
 	WEIBULL_FITNESS_EFFECT MutationFitnessModelType = "weibull"
 )
 
 type CrossoverModelType string
+
 const (
-	NO_CROSSOVER CrossoverModelType = "none"
-	FULL_CROSSOVER CrossoverModelType = "full"
+	NO_CROSSOVER      CrossoverModelType = "none"
+	FULL_CROSSOVER    CrossoverModelType = "full"
 	PARTIAL_CROSSOVER CrossoverModelType = "partial"
 )
-
 
 // Models holds pointers to functions that implement the various algorithms chosen by the input file.
 type Models struct {
 	CalcDelMutationFitness CalcMutationFitnessType
 	CalcFavMutationFitness CalcMutationFitnessType
-	Crossover CrossoverType
-	CalcAlleleFitness CalcAlleleFitnessType		// this goes with pop.InitialAlleleModelType
+	Crossover              CrossoverType
+	CalcAlleleFitness      CalcAlleleFitnessType // this goes with pop.InitialAlleleModelType
 }
 
 // Mdl is the singleton instance of Models that can be accessed throughout the dna package. It gets set in SetModels().
 var Mdl *Models
 
-
 // SetModels is called by main.initialize() to set the function ptrs for the various algorithms chosen by the input file.
 func SetModels(c *config.Config) {
-	Mdl = &Models{} 		// create and set the singleton object
-	var mdlNames []string 		// gather the models we use so we can print it out
+	Mdl = &Models{}       // create and set the singleton object
+	var mdlNames []string // gather the models we use so we can print it out
 
 	switch MutationFitnessModelType(strings.ToLower(c.Mutations.Fitness_effect_model)) {
-	case  FIXED_FITNESS_EFFECT:
-		if c.Mutations.Uniform_fitness_effect_del == 0.0 { log.Fatal("Error: if fitness_effect_model==fixed, you must set uniform_fitness_effect_del to a non-zero value.") }
+	case FIXED_FITNESS_EFFECT:
+		if c.Mutations.Uniform_fitness_effect_del == 0.0 {
+			log.Fatal("Error: if fitness_effect_model==fixed, you must set uniform_fitness_effect_del to a non-zero value.")
+		}
 		Mdl.CalcDelMutationFitness = CalcFixedDelMutationFitness
 		mdlNames = append(mdlNames, "CalcFixedDelMutationFitness")
-		if c.Mutations.Uniform_fitness_effect_fav == 0.0 { log.Fatal("Error: if fitness_effect_model==fixed, you must set uniform_fitness_effect_fav to a non-zero value.") }
+		if c.Mutations.Uniform_fitness_effect_fav == 0.0 {
+			log.Fatal("Error: if fitness_effect_model==fixed, you must set uniform_fitness_effect_fav to a non-zero value.")
+		}
 		Mdl.CalcFavMutationFitness = CalcFixedFavMutationFitness
 		mdlNames = append(mdlNames, "CalcFixedFavMutationFitness")
 	case UNIFORM_FITNESS_EFFECT:

@@ -1,12 +1,10 @@
 package random
 
-
 import (
 	"math"
 	"math/rand"
 	"testing"
 )
-
 
 // Runs many iterations of generating Poisson random numbers and makes sure
 // the distribution matches the probability given by poissonProbability.
@@ -15,7 +13,7 @@ import (
 // low to ensure the tests run quickly.
 func TestPoisson(t *testing.T) {
 	kCounts := make([]uint32, 100)
-	var iterations uint32 = 10E3
+	var iterations uint32 = 10e3
 	var epsilon float64 = 0.006
 	uniformRandom := rand.New(rand.NewSource(1))
 	var lambda float64 = 20
@@ -40,7 +38,7 @@ func TestPoisson(t *testing.T) {
 // (https://en.wikipedia.org/wiki/Poisson_distribution#Definition)
 func poissonProbability(lambda float64, k uint32) float64 {
 	g, _ := math.Lgamma(float64(k + 1))
-	return math.Exp(float64(k) * math.Log(lambda) - lambda - g)
+	return math.Exp(float64(k)*math.Log(lambda) - lambda - g)
 }
 
 // Runs many iterations of shuffling a `Slice` of `int`s and computes the

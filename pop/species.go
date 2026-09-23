@@ -1,24 +1,24 @@
 package pop
 
 import (
+	"fmt"
 	"github.com/genetic-algorithms/mendel-go/config"
 	"github.com/genetic-algorithms/mendel-go/random"
-	"math/rand"
 	"github.com/genetic-algorithms/mendel-go/utils"
-	"fmt"
 	"log"
+	"math/rand"
 )
 
 // Species tracks all of the populations (tribes) and holds attributes common to the whole species.
 type Species struct {
-	Populations []*Population		// the tribes that make up this species
-	PartsPerPop uint32 			// the number of population parts (threads) each population should have
+	Populations []*Population // the tribes that make up this species
+	PartsPerPop uint32        // the number of population parts (threads) each population should have
 }
 
 func SpeciesFactory() *Species {
 	s := &Species{
 		Populations: make([]*Population, config.Cfg.Tribes.Num_tribes),
-		PartsPerPop: uint32(utils.RoundUpInt(float64(config.Cfg.Computation.Num_threads) / float64(config.Cfg.Tribes.Num_tribes))),  // we round up because its ok to have more go threads than system threads
+		PartsPerPop: uint32(utils.RoundUpInt(float64(config.Cfg.Computation.Num_threads) / float64(config.Cfg.Tribes.Num_tribes))), // we round up because its ok to have more go threads than system threads
 	}
 	return s
 }
@@ -35,11 +35,11 @@ func (s *Species) Initialize(maxGenNum uint32, uniformRandom *rand.Rand) *Specie
 		} else {
 			newRandom = random.RandFactory()
 		}
-		s.Populations[i] = PopulationFactory(nil, 0, uint32(i+1), s.PartsPerPop) 		// genesis population
+		s.Populations[i] = PopulationFactory(nil, 0, uint32(i+1), s.PartsPerPop) // genesis population
 		Mdl.GenerateInitialAlleles(s.Populations[i], newRandom)
 	}
 	s.ReportInitial()
-	return s 		// so we can chain calls
+	return s // so we can chain calls
 }
 
 // GetNumPopulations returns the number of populations in this species
@@ -57,10 +57,10 @@ func (s *Species) GetCurrentSize() (size uint32) {
 
 // GetNextGeneration prepares all of the populations for the next gen and returns them in a new Species object
 func (parentS *Species) GetNextGeneration(gen uint32) (childrenS *Species) {
-	random.NextSeed = config.Cfg.Computation.Random_number_seed + 1		// reset the seed to 1 above our initial seed, so when we call RandFactory() in Mate() for additional threads it will work like it did before
+	random.NextSeed = config.Cfg.Computation.Random_number_seed + 1 // reset the seed to 1 above our initial seed, so when we call RandFactory() in Mate() for additional threads it will work like it did before
 	childrenS = SpeciesFactory()
 	for i := range parentS.Populations {
-		childrenS.Populations[i] = PopulationFactory(parentS.Populations[i], gen, uint32(i+1), parentS.PartsPerPop)	// this creates the PopulationParts too
+		childrenS.Populations[i] = PopulationFactory(parentS.Populations[i], gen, uint32(i+1), parentS.PartsPerPop) // this creates the PopulationParts too
 	}
 	return
 }
@@ -98,7 +98,9 @@ func (s *Species) Select(uniformRandom *rand.Rand) {
 // Go thru all pops and see if they all have gone extinct or reached their pop max
 func (s *Species) AllPopsDone() bool {
 	for _, p := range s.Populations {
-		if !p.Done && !p.IsDone(false) { return false }
+		if !p.Done && !p.IsDone(false) {
+			return false
+		}
 	}
 	return true
 }
@@ -106,7 +108,9 @@ func (s *Species) AllPopsDone() bool {
 // Go thru all pops and mark as done any that have gone extinct or reached its pop max
 func (s *Species) MarkDonePops() {
 	for _, p := range s.Populations {
-		if !p.Done && p.IsDone(true) { p.Done = true }
+		if !p.Done && p.IsDone(true) {
+			p.Done = true
+		}
 	}
 }
 
@@ -129,6 +133,7 @@ func (s *Species) ReportInitial() {
 		}
 	}
 }
+
 // GetFitnessStats returns the average of all the individuals fitness levels across the pops, as well as the min and max, and total and mean mutations.
 func (s *Species) GetFitnessStats() (meanFitness float64, minFitness float64, maxFitness float64, totalNumMutations uint64, meanNumMutations float64, speciesSize uint64) {
 	//todo: consider caching these values, once we are doing runs with lots of tribes
@@ -142,9 +147,13 @@ func (s *Species) GetFitnessStats() (meanFitness float64, minFitness float64, ma
 		popSize := p.GetCurrentSize()
 		speciesSize += uint64(popSize)
 		meanFit, minFit, maxFit, totalNumMuts, meanNumMuts := p.GetFitnessStats()
-		meanFitness += meanFit * float64(popSize)	// we want meanFitness to be the mean of all indivs in all pops
-		if minFit < minFitness { minFitness = minFit }
-		if maxFit > maxFitness { maxFitness = maxFit }
+		meanFitness += meanFit * float64(popSize) // we want meanFitness to be the mean of all indivs in all pops
+		if minFit < minFitness {
+			minFitness = minFit
+		}
+		if maxFit > maxFitness {
+			maxFitness = maxFit
+		}
 		totalNumMutations += totalNumMuts
 		meanNumMutations += meanNumMuts * float64(popSize)
 	}
@@ -162,7 +171,7 @@ func (s *Species) GetMutationStats() (meanNumDeleterious float64, meanNumNeutral
 		popSize := p.GetCurrentSize()
 		speciesSize += uint64(popSize)
 		meanNumDel, meanNumNeut, meanNumFav := p.GetMutationStats()
-		meanNumDeleterious += meanNumDel * float64(popSize)	// we want meanFitness to be the mean of all indivs in all pops
+		meanNumDeleterious += meanNumDel * float64(popSize) // we want meanFitness to be the mean of all indivs in all pops
 		meanNumNeutral += meanNumNeut * float64(popSize)
 		meanNumFavorable += meanNumFav * float64(popSize)
 	}
@@ -226,9 +235,11 @@ func (s *Species) ReportEachGen(genNum uint32, lastGen bool, totalInterimTime, g
 
 // GetAverageFitness gets the overall fitness of the species to determine if it has gone extinct
 func (s *Species) GetAverageFitness() (averageFitness float64) {
-	if s.GetNumPopulations() == 0 { return }
+	if s.GetNumPopulations() == 0 {
+		return
+	}
 	for _, p := range s.Populations {
-		aveFit, _, _, _, _ := p.GetFitnessStats()	// its ok that this gets called multiple times, because it caches the data
+		aveFit, _, _, _, _ := p.GetFitnessStats() // its ok that this gets called multiple times, because it caches the data
 		averageFitness += aveFit
 	}
 	return averageFitness / float64(s.GetNumPopulations())

@@ -1,23 +1,23 @@
 package config
 
 import (
+	"log"
 	"os"
 	"regexp"
-	"log"
-	"strings"
 	"strconv"
+	"strings"
 )
 
 // Supported file names. Do we need to make this a literal map to be able to check inputted file names??
 const (
-	HISTORY_FILENAME = "mendel.hst"
-	FITNESS_FILENAME = "mendel.fit"		// this one is faster to produce than mendel.hst
-	TOML_FILENAME = "mendel_go.toml"		// the input parameters
-	OUTPUT_FILENAME = "mendel_go.out"		//todo: figure out how we can get our own output into this file
-	ALLELE_BINS_DIRECTORY = "allele-bins/"
+	HISTORY_FILENAME                 = "mendel.hst"
+	FITNESS_FILENAME                 = "mendel.fit"     // this one is faster to produce than mendel.hst
+	TOML_FILENAME                    = "mendel_go.toml" // the input parameters
+	OUTPUT_FILENAME                  = "mendel_go.out"  //todo: figure out how we can get our own output into this file
+	ALLELE_BINS_DIRECTORY            = "allele-bins/"
 	NORMALIZED_ALLELE_BINS_DIRECTORY = "normalized-allele-bins/"
-	DISTRIBUTION_DEL_DIRECTORY = "allele-distribution-del/"
-	DISTRIBUTION_FAV_DIRECTORY = "allele-distribution-fav/"
+	DISTRIBUTION_DEL_DIRECTORY       = "allele-distribution-del/"
+	DISTRIBUTION_FAV_DIRECTORY       = "allele-distribution-fav/"
 )
 
 // Not using buffered io because we need write to be flushed every generation to support restart
@@ -36,14 +36,15 @@ type FileMgr struct {
 // FMgr is the singleton instance of FileMgr, created by FileMgrFactory.
 var FMgr *FileMgr
 
-
 // FileMgrFactory creates FMgr and initializes it. filesToOutput comes from the input file.
 func FileMgrFactory(dataFilePath, filesToOutput string) *FileMgr {
-	FMgr = &FileMgr{DataFilePath: dataFilePath, Files: make(map[string]*os.File), Dirs: make(map[string]map[string]*os.File) }
-	if filesToOutput == "" { return FMgr }
+	FMgr = &FileMgr{DataFilePath: dataFilePath, Files: make(map[string]*os.File), Dirs: make(map[string]map[string]*os.File)}
+	if filesToOutput == "" {
+		return FMgr
+	}
 
 	// Get the proper list of file names
-	var VALID_FILE_NAMES = map[string]int{HISTORY_FILENAME: 1, FITNESS_FILENAME: 1, ALLELE_BINS_DIRECTORY: 1, NORMALIZED_ALLELE_BINS_DIRECTORY: 1, DISTRIBUTION_DEL_DIRECTORY: 1, DISTRIBUTION_FAV_DIRECTORY: 1,}
+	var VALID_FILE_NAMES = map[string]int{HISTORY_FILENAME: 1, FITNESS_FILENAME: 1, ALLELE_BINS_DIRECTORY: 1, NORMALIZED_ALLELE_BINS_DIRECTORY: 1, DISTRIBUTION_DEL_DIRECTORY: 1, DISTRIBUTION_FAV_DIRECTORY: 1}
 	if CmdArgs.CreateZip || CmdArgs.SPCusername != "" {
 		// Add the files that are relevant only when -u is specified (and we aren't running in spc)
 		VALID_FILE_NAMES[TOML_FILENAME] = 1
@@ -70,44 +71,52 @@ func FileMgrFactory(dataFilePath, filesToOutput string) *FileMgr {
 
 	// Open all of the files and put in the map
 	Verbose(5, "Opening files for writing: %v", fileNames)
-	FMgr.openFiles(dataFilePath, "", fileNames)		// this is either for the single pop, or a summary of all the tribes
+	FMgr.openFiles(dataFilePath, "", fileNames) // this is either for the single pop, or a summary of all the tribes
 	if Cfg.Tribes.Num_tribes > 1 {
-		for i:=1; i<=int(Cfg.Tribes.Num_tribes); i++ {
+		for i := 1; i <= int(Cfg.Tribes.Num_tribes); i++ {
 			FMgr.openFiles(dataFilePath, TribeDir(uint32(i)), fileNames)
 		}
 	}
 
-	return FMgr		// return the object created so we can chain other methods after this
+	return FMgr // return the object created so we can chain other methods after this
 }
 
-func TribeDir(tribeNum uint32) string { return "tribe-"+strconv.Itoa(int(tribeNum)) }
+func TribeDir(tribeNum uint32) string { return "tribe-" + strconv.Itoa(int(tribeNum)) }
 
 func TribePrefix(tribeNum uint32) string {
-	if Cfg.Tribes.Num_tribes <= 1 || tribeNum == 0 { return "" }
+	if Cfg.Tribes.Num_tribes <= 1 || tribeNum == 0 {
+		return ""
+	}
 	return TribeDir(tribeNum) + "/"
 }
 
 // openFiles opens the files and creates the dirs for the main pop (subdir=="") or a tribe.
 func (fMgr *FileMgr) openFiles(dataFilePath, subdir string, fileNames []string) {
-	dataFilePath = suffixDir(dataFilePath,subdir)		// this is usually a subdir for a tribe
+	dataFilePath = suffixDir(dataFilePath, subdir) // this is usually a subdir for a tribe
 	if len(fileNames) > 0 {
 		// Make sure output directory exists
-		if err := os.MkdirAll(dataFilePath, 0755); err != nil { log.Fatalf("Error creating data_file_path %v: %v", dataFilePath, err) }
+		if err := os.MkdirAll(dataFilePath, 0755); err != nil {
+			log.Fatalf("Error creating data_file_path %v: %v", dataFilePath, err)
+		}
 	}
 	for _, f := range fileNames {
 		if strings.HasSuffix(f, "/") {
 			// f is really a directory name, make sure it exists and then add it to our Dirs map. The actual files under that will get created later when GetDirFile() is called.
 			fDir := f
 			dirPath := dataFilePath + "/" + fDir
-			if err := os.MkdirAll(dirPath, 0755); err != nil { log.Fatalf("Error creating output directory %v: %v", dirPath, err) }
-			FMgr.Dirs[prefixDir(subdir,fDir)] = make(map[string]*os.File)	// the dir keys need to be unique so it should include the tribe
+			if err := os.MkdirAll(dirPath, 0755); err != nil {
+				log.Fatalf("Error creating output directory %v: %v", dirPath, err)
+			}
+			FMgr.Dirs[prefixDir(subdir, fDir)] = make(map[string]*os.File) // the dir keys need to be unique so it should include the tribe
 		} else {
 			// f is a single file, open it
 			filePath := dataFilePath + "/" + f
 			file, err := os.Create(filePath)
-			if err != nil { log.Fatal(err) } 	// for now, if we can't open a file, just bail
+			if err != nil {
+				log.Fatal(err)
+			} // for now, if we can't open a file, just bail
 			//FMgr.Files[f] = FileElem{file, bufio.NewWriter(file)}
-			FMgr.Files[prefixDir(subdir,f)] = file
+			FMgr.Files[prefixDir(subdir, f)] = file
 		}
 	}
 }
@@ -126,27 +135,29 @@ func suffixDir(dir1, dir2 string) string {
 	return dir1
 }
 
-
 // IsFile returns true if the specified file name was specified in the files_to_output config parameter and is open.
 func (fMgr *FileMgr) IsFile(fileName string) bool {
-	if file, ok := fMgr.Files[fileName]; ok && file != nil { return true }
+	if file, ok := fMgr.Files[fileName]; ok && file != nil {
+		return true
+	}
 	return false
 }
-
 
 // IsDir returns true if the specified dir name was specified in the files_to_output config parameter.
 func (fMgr *FileMgr) IsDir(dirName string) bool {
-	if dir, ok := fMgr.Dirs[dirName]; ok && dir != nil { return true }
+	if dir, ok := fMgr.Dirs[dirName]; ok && dir != nil {
+		return true
+	}
 	return false
 }
 
-
 // GetFile returns the specified file descriptor if we have it open.
 func (fMgr *FileMgr) GetFile(fileName string, tribeNum uint32) *os.File {
-	if file, ok := fMgr.Files[TribePrefix(tribeNum)+fileName]; ok && file != nil { return file }
+	if file, ok := fMgr.Files[TribePrefix(tribeNum)+fileName]; ok && file != nil {
+		return file
+	}
 	return nil
 }
-
 
 // GetDirFile returns the specified file descriptor in the specified directory, creating/opening the file if necessary.
 func (fMgr *FileMgr) GetDirFile(dirName, fileName string, tribeNum uint32) *os.File {
@@ -156,16 +167,17 @@ func (fMgr *FileMgr) GetDirFile(dirName, fileName string, tribeNum uint32) *os.F
 			return file
 		} else {
 			// Not there yet, create the entry
-			filePath := FMgr.DataFilePath + "/" + TribePrefix(tribeNum)+dirName + fileName // dirName already has / at the end of it
+			filePath := FMgr.DataFilePath + "/" + TribePrefix(tribeNum) + dirName + fileName // dirName already has / at the end of it
 			file, err := os.Create(filePath)
-			if err != nil { log.Fatal(err) } 	// for now, if we can't open a file, just bail
-			dir[fileName] = file		// add it to our list so we can close it at the end
+			if err != nil {
+				log.Fatal(err)
+			} // for now, if we can't open a file, just bail
+			dir[fileName] = file // add it to our list so we can close it at the end
 			return file
 		}
 	}
 	return nil
 }
-
 
 // CloseFile closes a file under FileMgr control.
 func (fMgr *FileMgr) CloseFile(fileName string, tribeNum uint32) {
@@ -180,7 +192,6 @@ func (fMgr *FileMgr) CloseFile(fileName string, tribeNum uint32) {
 		log.Printf("Error: file %v can not be closed because it is not open", fileName)
 	}
 }
-
 
 // CloseDirFile closes a file under a directory.
 func (fMgr *FileMgr) CloseDirFile(dirName, fileName string, tribeNum uint32) {
@@ -201,7 +212,6 @@ func (fMgr *FileMgr) CloseDirFile(dirName, fileName string, tribeNum uint32) {
 	}
 }
 
-
 /* Not currently used...
 // GetFileBuffer returns a buffered file descriptor if we have it open
 func (fMgr *FileMgr) GetFileBuffer(fileName string) *bufio.Writer {
@@ -210,14 +220,15 @@ func (fMgr *FileMgr) GetFileBuffer(fileName string) *bufio.Writer {
 }
 */
 
-
 // CloseAllFiles closes all of the open files.
 func (fMgr *FileMgr) CloseAllFiles() {
 	// Close all of the open files in our Files map
 	for fileName, file := range fMgr.Files {
 		if file != nil {
-			if err := file.Close(); err != nil { log.Printf("Error closing %v: %v", fileName, err) }
-			fMgr.Files[fileName] = nil		// in case CloseAllFiles() is called a 2nd time
+			if err := file.Close(); err != nil {
+				log.Printf("Error closing %v: %v", fileName, err)
+			}
+			fMgr.Files[fileName] = nil // in case CloseAllFiles() is called a 2nd time
 		}
 	}
 
@@ -225,8 +236,10 @@ func (fMgr *FileMgr) CloseAllFiles() {
 	for _, dir := range fMgr.Dirs {
 		for fileName, file := range dir {
 			if file != nil {
-				if err := file.Close(); err != nil { log.Printf("Error closing %v: %v", fileName, err) }
-				dir[fileName] = nil		// in case CloseAllFiles() is called a 2nd time
+				if err := file.Close(); err != nil {
+					log.Printf("Error closing %v: %v", fileName, err)
+				}
+				dir[fileName] = nil // in case CloseAllFiles() is called a 2nd time
 			}
 		}
 	}

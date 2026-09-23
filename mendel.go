@@ -19,18 +19,18 @@ import (
 	"log"
 	"os"
 	// "github.com/davecgh/go-spew/spew"
-	"github.com/genetic-algorithms/mendel-go/config"
-	"github.com/genetic-algorithms/mendel-go/utils"
-	"github.com/genetic-algorithms/mendel-go/pop"
-	"math/rand"
-	"github.com/genetic-algorithms/mendel-go/dna"
-	"github.com/pkg/profile"
-	"strings"
-	"runtime/debug"
-	"github.com/genetic-algorithms/mendel-go/random"
 	"fmt"
-	"path/filepath"
+	"github.com/genetic-algorithms/mendel-go/config"
+	"github.com/genetic-algorithms/mendel-go/dna"
+	"github.com/genetic-algorithms/mendel-go/pop"
+	"github.com/genetic-algorithms/mendel-go/random"
+	"github.com/genetic-algorithms/mendel-go/utils"
+	"github.com/pkg/profile"
 	"io"
+	"math/rand"
+	"path/filepath"
+	"runtime/debug"
+	"strings"
 )
 
 // Initialize initializes variables, objects, and settings.
@@ -62,9 +62,13 @@ func CreateSpcZip(spcUsername, randomSlug string) {
 		if tomlWriter := config.FMgr.GetFile(config.TOML_FILENAME, 0); tomlWriter != nil {
 			//if err := config.Cfg.WriteToFile(tomlWriter); err != nil { log.Fatalf("Error writing %s: %v", config.TOML_FILENAME, err) }
 			if config.CmdArgs.InputFile != "" {
-				if err := utils.CopyFromFileName2Writer(config.CmdArgs.InputFile, tomlWriter); err != nil { log.Fatalln(err) }
+				if err := utils.CopyFromFileName2Writer(config.CmdArgs.InputFile, tomlWriter); err != nil {
+					log.Fatalln(err)
+				}
 			} else {
-				if err := utils.CopyFromFileName2Writer(config.FindDefaultFile(), tomlWriter); err != nil { log.Fatalln(err) }
+				if err := utils.CopyFromFileName2Writer(config.FindDefaultFile(), tomlWriter); err != nil {
+					log.Fatalln(err)
+				}
 			}
 		}
 	}
@@ -72,15 +76,17 @@ func CreateSpcZip(spcUsername, randomSlug string) {
 	//todo: write real run output to OUTPUT_FILENAME
 	if outputWriter := config.FMgr.GetFile(config.OUTPUT_FILENAME, 0); outputWriter != nil {
 		outputStr := "The run log entries are not available in this job.\nThe plot files and inputs ARE available (click PLOT or FILES below).\n"
-		if _, err := io.WriteString(outputWriter, outputStr); err != nil { log.Fatalf("Error writing %s: %v", config.OUTPUT_FILENAME, err) }
+		if _, err := io.WriteString(outputWriter, outputStr); err != nil {
+			log.Fatalf("Error writing %s: %v", config.OUTPUT_FILENAME, err)
+		}
 	}
-	config.FMgr.CloseAllFiles()	// explicitly close all files so the zip file contains all data
+	config.FMgr.CloseAllFiles() // explicitly close all files so the zip file contains all data
 
 	// The files in the zip need to have a path like: user_data/<spcUsername>/mendel_go/<randomSlug>/...
-	pathToZipUp := config.Cfg.Computation.Data_file_path	// e.g. test/output/short
-	zipFilePath := config.Cfg.Computation.Data_file_path+"/../"+config.Cfg.Basic.Case_id+".zip"	// e.g. test/output/short.zip
+	pathToZipUp := config.Cfg.Computation.Data_file_path                                              // e.g. test/output/short
+	zipFilePath := config.Cfg.Computation.Data_file_path + "/../" + config.Cfg.Basic.Case_id + ".zip" // e.g. test/output/short.zip
 	prefixToReplace := config.Cfg.Computation.Data_file_path
-	newPrefix := "user_data/"+spcUsername+"/mendel_go/"+randomSlug	// e.g. user_data/brucemp/mendel_go/z59e4c
+	newPrefix := "user_data/" + spcUsername + "/mendel_go/" + randomSlug // e.g. user_data/brucemp/mendel_go/z59e4c
 	config.Verbose(2, "Creating zip file: pathToZipUp=%s, zipFilePath=%s, prefixToReplace=%s, newPrefix=%s\n", pathToZipUp, zipFilePath, prefixToReplace, newPrefix)
 	if err := utils.CreatePrefixedZip(pathToZipUp, zipFilePath, prefixToReplace, newPrefix); err != nil {
 		log.Fatalf("Error creating zip of output data files: %v", err)
@@ -115,19 +121,22 @@ func CreateMendelUiZip(randomSlug string) {
 	if tomlWriter := config.FMgr.GetFile(config.TOML_FILENAME, 0); tomlWriter != nil {
 		// insert job id into case_id param
 		config.Cfg.Basic.Case_id = randomSlug
-		if err := config.Cfg.WriteToFile(tomlWriter); err != nil { log.Fatalln(err) }
+		if err := config.Cfg.WriteToFile(tomlWriter); err != nil {
+			log.Fatalln(err)
+		}
 	}
-
 
 	//todo: write real run output to OUTPUT_FILENAME, instead of just this msg
 	if outputWriter := config.FMgr.GetFile(config.OUTPUT_FILENAME, 0); outputWriter != nil {
 		outputStr := "The run log entries are not available in this job.\nThe plot files and inputs ARE available (click PLOTS or CONFIG below).\n"
-		if _, err := io.WriteString(outputWriter, outputStr); err != nil { log.Fatalf("Error writing %s: %v", config.OUTPUT_FILENAME, err) }
+		if _, err := io.WriteString(outputWriter, outputStr); err != nil {
+			log.Fatalf("Error writing %s: %v", config.OUTPUT_FILENAME, err)
+		}
 	}
-	config.FMgr.CloseAllFiles()	// explicitly close all files so the zip file contains all data
+	config.FMgr.CloseAllFiles() // explicitly close all files so the zip file contains all data
 
-	pathToZipUp := config.Cfg.Computation.Data_file_path	// e.g. test/output/short
-	zipFilePath := config.Cfg.Computation.Data_file_path+"/../"+origCase_id+"-"+randomSlug+".zip"	// e.g. test/output/short.zip
+	pathToZipUp := config.Cfg.Computation.Data_file_path                                                    // e.g. test/output/short
+	zipFilePath := config.Cfg.Computation.Data_file_path + "/../" + origCase_id + "-" + randomSlug + ".zip" // e.g. test/output/short.zip
 	prefixToReplace := config.Cfg.Computation.Data_file_path
 	newPrefix := ""
 	config.Verbose(2, "Creating zip file: pathToZipUp=%s, zipFilePath=%s, prefixToReplace=%s\n", pathToZipUp, zipFilePath, prefixToReplace)
@@ -146,15 +155,15 @@ func shutdown() {
 		CreateMendelUiZip(utils.RandomSlug(4))
 	}
 	utils.Measure.Stop("Total")
-	utils.Measure.LogSummary() 		// it checks the verbosity level itself
+	utils.Measure.LogSummary() // it checks the verbosity level itself
 	config.Verbose(5, "Shutting down...\n")
 }
 
 // Main handles cmd line args, reads input files, and contains the main generation loop.
 func main() {
-	log.SetOutput(os.Stdout) 	// needs to be done very early
+	log.SetOutput(os.Stdout) // needs to be done very early
 
-	config.ReadCmdArgs()    // Get/check cmd line options and load specified input file - flags are accessible in config.CmdArgs, config values in config.Cfg
+	config.ReadCmdArgs() // Get/check cmd line options and load specified input file - flags are accessible in config.CmdArgs, config values in config.Cfg
 
 	// Handle the different input file choices
 	if config.CmdArgs.Version {
@@ -162,19 +171,29 @@ func main() {
 		os.Exit(0)
 
 	} else if config.CmdArgs.InputFileToCreate != "" {
-		if err := utils.CopyFile(config.FindDefaultFile(), config.CmdArgs.InputFileToCreate); err != nil { log.Fatalln(err) }
+		if err := utils.CopyFile(config.FindDefaultFile(), config.CmdArgs.InputFileToCreate); err != nil {
+			log.Fatalln(err)
+		}
 		os.Exit(0)
 
 	} else if config.CmdArgs.InputFile != "" {
-		if err := config.ReadFromFile(config.CmdArgs.InputFile); err != nil { log.Fatalln(err) }
+		if err := config.ReadFromFile(config.CmdArgs.InputFile); err != nil {
+			log.Fatalln(err)
+		}
 		config.Verbose(3, "Case_id: %v\n", config.Cfg.Basic.Case_id)
 
-	} else { config.Usage(0) }		// this will exit
+	} else {
+		config.Usage(0)
+	} // this will exit
 
 	// ReadFromFile() opened the output files, so arrange for them to be closed at the end
 	defer config.FMgr.CloseAllFiles()
-	if config.CmdArgs.SPCusername != "" && config.Cfg.Computation.Files_to_output != "*" { log.Fatalf("Error: if you specify the -u flag, the files_to_output value in the input file must be set to '*', so the produced zip file will have the proper content.") }
-	if config.CmdArgs.CreateZip && config.Cfg.Computation.Files_to_output != "*" { log.Fatalf("Error: if you specify the -z flag, the files_to_output value in the input file must be set to '*', so the produced zip file will have the proper content.") }
+	if config.CmdArgs.SPCusername != "" && config.Cfg.Computation.Files_to_output != "*" {
+		log.Fatalf("Error: if you specify the -u flag, the files_to_output value in the input file must be set to '*', so the produced zip file will have the proper content.")
+	}
+	if config.CmdArgs.CreateZip && config.Cfg.Computation.Files_to_output != "*" {
+		log.Fatalf("Error: if you specify the -z flag, the files_to_output value in the input file must be set to '*', so the produced zip file will have the proper content.")
+	}
 
 	// Initialize profiling, if requested
 	switch strings.ToLower(config.Cfg.Computation.Performance_profile) {
@@ -195,7 +214,7 @@ func main() {
 	maxGenNum := config.Cfg.Basic.Num_generations
 	parentSpecies := pop.SpeciesFactory().Initialize(maxGenNum, uniformRandom)
 
-	popMaxIsSet := pop.PopulationGrowthModelType(strings.ToLower(config.Cfg.Population.Pop_growth_model))==pop.EXPONENTIAL_POPULATON_GROWTH && config.Cfg.Population.Max_pop_size>0
+	popMaxIsSet := pop.PopulationGrowthModelType(strings.ToLower(config.Cfg.Population.Pop_growth_model)) == pop.EXPONENTIAL_POPULATON_GROWTH && config.Cfg.Population.Max_pop_size > 0
 	//popMax := config.Cfg.Population.Max_pop_size
 
 	// If num gens is 0 and not exponential growth, only report on genesis pop and then exit
@@ -212,12 +231,14 @@ func main() {
 
 	// Main generation loop.
 	for gen := uint32(1); ; gen++ {
-		utils.Measure.Start("Generations")		// this is stopped in ReportEachGen() so it can report each delta
-		childrenSpecies := parentSpecies.GetNextGeneration(gen)	// this creates the PopulationParts too
-		parentSpecies.Mate(childrenSpecies, uniformRandom)		// this fills in the next gen populations object with the offspring
+		utils.Measure.Start("Generations")                      // this is stopped in ReportEachGen() so it can report each delta
+		childrenSpecies := parentSpecies.GetNextGeneration(gen) // this creates the PopulationParts too
+		parentSpecies.Mate(childrenSpecies, uniformRandom)      // this fills in the next gen populations object with the offspring
 		utils.Measure.CheckAmountMemoryUsed()
-		parentSpecies = nil 	// give GC a chance to reclaim the previous generation
-		if config.Cfg.Computation.Force_gc { utils.CollectGarbage() }
+		parentSpecies = nil // give GC a chance to reclaim the previous generation
+		if config.Cfg.Computation.Force_gc {
+			utils.CollectGarbage()
+		}
 		childrenSpecies.Select(uniformRandom)
 
 		// Check if we should stop the run
@@ -236,10 +257,12 @@ func main() {
 		totalInterimTime := utils.Measure.GetInterimTime("Total")
 		genTime := utils.Measure.Stop("Generations")
 		childrenSpecies.ReportEachGen(gen, lastGen, totalInterimTime, genTime)
-		childrenSpecies.MarkDonePops()		// effectively stops the tribes that have gone extinct or reached pop max
-		if lastGen { break }
-		parentSpecies = childrenSpecies        // for the next iteration
+		childrenSpecies.MarkDonePops() // effectively stops the tribes that have gone extinct or reached pop max
+		if lastGen {
+			break
+		}
+		parentSpecies = childrenSpecies // for the next iteration
 	}
 
-	shutdown()	// Finish up
+	shutdown() // Finish up
 }

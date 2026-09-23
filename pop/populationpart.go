@@ -1,10 +1,10 @@
 package pop
 
 import (
-	"math/rand"
-	"sync"
 	"github.com/genetic-algorithms/mendel-go/utils"
 	"log"
+	"math/rand"
+	"sync"
 )
 
 // PopulationPart is a construct used to partition the population for the purpose mating parts of the population
@@ -17,9 +17,8 @@ type PopulationPart struct {
 	Pop            *Population      // a reference back to the whole population, but that object should only be read
 	MyUniqueInt    *utils.UniqueInt // this part gets its own range for mutation id's that can be manipulated concurrently with the gloabl one. This is set in Mate().
 
-									// Note: fitness stats are saved at the Population level, not at the part level...
+	// Note: fitness stats are saved at the Population level, not at the part level...
 }
-
 
 // PopulationPartFactory returns an instance of PopulationPart
 func PopulationPartFactory(numIndivs uint32, pop *Population) *PopulationPart {
@@ -27,12 +26,13 @@ func PopulationPartFactory(numIndivs uint32, pop *Population) *PopulationPart {
 
 	if numIndivs > 0 {
 		p.Indivs = make([]*Individual, 0, numIndivs)
-		for i:=uint32(1); i<= numIndivs; i++ { p.Indivs = append(p.Indivs, IndividualFactory(p, true)) }
+		for i := uint32(1); i <= numIndivs; i++ {
+			p.Indivs = append(p.Indivs, IndividualFactory(p, true))
+		}
 	}
 
 	return p
 }
-
 
 // Not currently used, but kept here in case we want to reuse populations - Reinitialize repurposes a part for another generation. This is never called for gen 0.
 func (p *PopulationPart) Reinitialize() {
@@ -41,28 +41,27 @@ func (p *PopulationPart) Reinitialize() {
 	p.NextIndivIndex = 0
 }
 
-
 // FreeIndivs drops references to the Indivs
 func (p *PopulationPart) FreeIndivs() { p.Indivs = []*Individual{} }
 
-
 // Size returns the current number of individuals in this part of the population
 func (p *PopulationPart) GetCurrentSize() uint32 { return uint32(len(p.Indivs)) }
-
 
 // Mate mates the parents passed in (which is a slice of the individuals in the parent population) and adds the children
 // to this PopulationPart object. This function is called in a go routine so it must be thread-safe.
 // Note: since parentIndices is a slice (not the actual array), passing it as a param does not copy all of the elements, which is good.
 func (p *PopulationPart) Mate(parentPop *Population, parentIndices []int, uniqueInt *utils.UniqueInt, uniformRandom *rand.Rand, waitGroup *sync.WaitGroup) {
 	defer waitGroup.Done()
-	p.MyUniqueInt = uniqueInt 		// hold this for use by all of the objects i contain
-	if len(parentIndices) == 0 { return }
+	p.MyUniqueInt = uniqueInt // hold this for use by all of the objects i contain
+	if len(parentIndices) == 0 {
+		return
+	}
 	// Note: the caller already shuffled the parents
 
 	p.SetEstimatedNumIndivs(uint32(float64(len(parentIndices)) * p.Pop.Num_offspring))
 
 	// Mate pairs and create the offspring. Now that we have shuffled the parent indices, we can just go 2 at a time thru the indices.
-	for i := 0; i < len(parentIndices) - 1; i += 2 {
+	for i := 0; i < len(parentIndices)-1; i += 2 {
 		dadI := parentIndices[i]
 		momI := parentIndices[i+1]
 		// dadI and momI are just indices into the combined Indivs array in the Population object, so we index into that.
@@ -72,35 +71,35 @@ func (p *PopulationPart) Mate(parentPop *Population, parentIndices []int, unique
 
 		parentPop.FreeParentRefs(dadI, momI)
 		/*
-		if !config.Cfg.Computation.Reuse_populations {
-			//parentPop.IndivRefs[dadI].Indiv.Free()	// <- this doesn't help any more than setting the Indiv ptr to nil
-			parentPop.IndivRefs[dadI].Indiv = nil
-			//parentPop.IndivRefs[momI].Indiv.Free()
-			parentPop.IndivRefs[momI].Indiv = nil
-		}
+			if !config.Cfg.Computation.Reuse_populations {
+				//parentPop.IndivRefs[dadI].Indiv.Free()	// <- this doesn't help any more than setting the Indiv ptr to nil
+				parentPop.IndivRefs[dadI].Indiv = nil
+				//parentPop.IndivRefs[momI].Indiv.Free()
+				parentPop.IndivRefs[momI].Indiv = nil
+			}
 		*/
 	}
 }
-
 
 // SetEstimatedNumIndivs allocates the array of ptrs to Individuals once to an approx size, instead of appending multiple times.
 // Note: this has to use the member vars of the part (instead of having our own) so it is thread safe.
 func (p *PopulationPart) SetEstimatedNumIndivs(estimatedNumIndivs uint32) {
 	if cap(p.Indivs) == 0 {
 		// This is a brand new part
-		p.Indivs = make([]*Individual, 0, estimatedNumIndivs)    // It is ok if we underestimate the size a little, because we will add individuals with append() anyway.
+		p.Indivs = make([]*Individual, 0, estimatedNumIndivs) // It is ok if we underestimate the size a little, because we will add individuals with append() anyway.
 	}
 	// else the Indivs array is approximately big enough and we will reuse the Individual objects it points to and enlarge as necessary
 	//todo: in the pop growth case we should do a better job of estimating the size we need.
 }
-
 
 // GetIndividual returns the next available Individual to reuse, or creates one if necessary.
 // Note: this has to use the member vars of the part (instead of having our own) so it is thread safe.
 func (p *PopulationPart) GetIndividual() (ind *Individual) {
 	// should we look at cap() instead of len() and test if the ptr to the Individual is nil? Not sure if we ever shrink this slice
 	if p.NextIndivIndex < len(p.Indivs) {
-		if p.Indivs[p.NextIndivIndex] == nil { log.Fatalf("Error: part.Indivs[%v] is nil even though index is < length %v", p.NextIndivIndex, len(p.Indivs))}
+		if p.Indivs[p.NextIndivIndex] == nil {
+			log.Fatalf("Error: part.Indivs[%v] is nil even though index is < length %v", p.NextIndivIndex, len(p.Indivs))
+		}
 		// We are still within the allocated array and there is an existing Individual object we can reuse
 	} else {
 		// The Indivs slice is too small. Create an indiv and append it.

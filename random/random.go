@@ -1,6 +1,5 @@
 package random
 
-
 import (
 	crand "crypto/rand"
 	"math"
@@ -32,20 +31,20 @@ func RandFactory() *rand.Rand {
 //func (r *Rnd) Float64() float64 { return r.Rnd.Float64() }
 //func (r *Rnd) Intn(n int) int   { return r.Rnd.Intn(n) }
 
-
 // Round randomly rounds an int either up or down, weighting the odds according to how far away from the integer it is.
 // If the float is a perfect int, it always chooses that.
 func Round(uniformRandom *rand.Rand, num float64) int {
 	intNum := int(num)
 	wholeNum := float64(intNum)
-	if num == wholeNum { return intNum }
-	if uniformRandom.Float64() > num - wholeNum {
+	if num == wholeNum {
+		return intNum
+	}
+	if uniformRandom.Float64() > num-wholeNum {
 		return intNum
 	} else {
 		return intNum + 1
 	}
 }
-
 
 // Algorithm taken from Wikipedia
 // (https://en.wikipedia.org/wiki/Poisson_distribution#Generating_Poisson-distributed_random_variables).
@@ -72,12 +71,13 @@ func Poisson(uniformRandom *rand.Rand, lambda float64) uint32 {
 
 		}
 
-		if p <= 1 { break }
+		if p <= 1 {
+			break
+		}
 	}
 
 	return k - 1
 }
-
 
 // Get a random int64 from /dev/urandom to use as a seed
 func GetSeed() int64 {
@@ -89,7 +89,6 @@ func GetSeed() int64 {
 
 	return nBig.Int64()
 }
-
 
 /* math.rand.Perm() is used instead of this...
 type Shuffleable interface {
