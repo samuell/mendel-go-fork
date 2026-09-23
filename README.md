@@ -3,6 +3,7 @@
 This is the golang version of [Mendel](https://en.wikipedia.org/wiki/Gregor_Mendel)'s Accountant, a genetic mutation tracking program used to simulate and study macroevolution in a biologically realistic way.
 It models genetic change over time by tracking each mutation that enters the simulated population from generation to generation
 to the end of the simulation.
+
 The software models each individual in the population, including their chromosomes, linkage blocks, and deleterious, favorable, and neutral mutations.
 It supports several different models for mutation rate, mutation fitness distribution, selection, chromosome crossover, and population growth that are used in the
 genetics field. The Mendel simulation also supports input parameters for many realistic genetic factors, including: reproduction rate, percentage of favorable,
